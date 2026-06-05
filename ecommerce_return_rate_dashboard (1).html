@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Commerce Return Rate Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ── Power BI / Tableau design tokens ── */
+:root {
+  --bg:        #F0F2F5;
+  --surface:   #FFFFFF;
+  --surface2:  #F7F8FA;
+  --border:    #E4E7EC;
+  --text-h:    #1A2033;
+  --text-b:    #3D4A63;
+  --text-m:    #7B8DAE;
+  --text-lo:   #A8B5CC;
+
+  /* accent palette */
+  --blue:      #2563EB;
+  --blue-lt:   #EEF3FF;
+  --red:       #DC2626;
+  --red-lt:    #FEF2F2;
+  --amber:     #D97706;
+  --amber-lt:  #FFFBEB;
+  --green:     #059669;
+  --green-lt:  #ECFDF5;
+  --purple:    #7C3AED;
+  --purple-lt: #F5F3FF;
+  --teal:      #0891B2;
+  --teal-lt:   #ECFEFF;
+
+  /* chart palette */
+  --c1:#2563EB;--c2:#DC2626;--c3:#059669;--c4:#D97706;--c5:#7C3AED;--c6:#0891B2;
+
+  --radius-sm:6px;
+  --radius:10px;
+  --radius-lg:14px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.10),0 1px 3px rgba(0,0,0,.05);
+  --font:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-b);min-height:100vh;padding:20px}
+
+/* ── Layout ── */
+.db{max-width:1340px;margin:0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.grid13{display:grid;grid-template-columns:1.45fr 1fr;gap:14px;margin-bottom:14px}
+
+/* ── Header ── */
+.db-header{
+  background:linear-gradient(135deg,#1E3A8A 0%,#2563EB 60%,#3B82F6 100%);
+  border-radius:var(--radius-lg);
+  padding:22px 28px;
+  margin-bottom:18px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  box-shadow:0 4px 24px rgba(37,99,235,.30);
+}
+.db-title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.db-sub{font-size:12.5px;color:rgba(255,255,255,.70);margin-top:3px}
+.db-badge{background:rgba(255,255,255,.15);backdrop-filter:blur(4px);color:#fff;font-size:11.5px;font-weight:500;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;gap:6px}
+.badge-dot{width:8px;height:8px;border-radius:50%;background:#FCD34D;box-shadow:0 0 0 2px rgba(252,211,77,.3)}
+
+/* ── Section label ── */
+.section-label{
+  font-size:11px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:1.1px;
+  margin:20px 0 10px;padding-left:3px;display:flex;align-items:center;gap:8px
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── KPI cards ── */
+.kpi{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  transition:box-shadow .2s,transform .2s
+}
+.kpi:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.kpi-icon{position:absolute;right:16px;top:16px;width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:18px}
+.kpi-label{font-size:11px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px}
+.kpi-val{font-size:30px;font-weight:700;line-height:1;letter-spacing:-1px}
+.kpi-note{font-size:11.5px;margin-top:6px;display:flex;align-items:center;gap:4px}
+.kpi-bar{height:3px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+.kpi-danger .kpi-val{color:var(--red)}
+.kpi-danger .kpi-icon{background:var(--red-lt);color:var(--red)}
+.kpi-danger .kpi-note{color:var(--red)}
+.kpi-danger .kpi-bar-fill{background:var(--red)}
+
+.kpi-warn .kpi-val{color:var(--amber)}
+.kpi-warn .kpi-icon{background:var(--amber-lt);color:var(--amber)}
+.kpi-warn .kpi-note{color:var(--amber)}
+.kpi-warn .kpi-bar-fill{background:var(--amber)}
+
+.kpi-info .kpi-val{color:var(--blue)}
+.kpi-info .kpi-icon{background:var(--blue-lt);color:var(--blue)}
+.kpi-info .kpi-note{color:var(--blue)}
+.kpi-info .kpi-bar-fill{background:var(--blue)}
+
+.kpi-ok .kpi-val{color:var(--green)}
+.kpi-ok .kpi-icon{background:var(--green-lt);color:var(--green)}
+.kpi-ok .kpi-note{color:var(--green)}
+.kpi-ok .kpi-bar-fill{background:var(--green)}
+
+/* ── Panel (chart card) ── */
+.panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:18px 20px;box-shadow:var(--shadow);
+}
+.panel-title{font-size:13.5px;font-weight:600;color:var(--text-h);margin-bottom:2px}
+.panel-sub{font-size:11.5px;color:var(--text-m);margin-bottom:12px}
+.chart-wrap{position:relative;width:100%}
+
+/* ── Legend ── */
+.leg{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-size:11.5px;color:var(--text-m)}
+.leg-dot{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+.leg-line{width:16px;height:2.5px;display:inline-block;margin-right:5px;vertical-align:middle;border-radius:2px}
+
+/* ── Insight box ── */
+.insight-box{
+  background:var(--blue-lt);border-left:3px solid var(--blue);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  padding:10px 14px;margin-top:12px
+}
+.insight-box p{font-size:12px;color:var(--text-b);line-height:1.65}
+.insight-box strong{color:var(--blue);font-weight:600}
+
+/* ── Segment bars ── */
+.seg-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.seg-row:last-child{border-bottom:none}
+.seg-name{font-size:12.5px;color:var(--text-h);font-weight:500;width:145px;flex-shrink:0}
+.seg-bar-wrap{flex:1;height:20px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.seg-bar{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.seg-pct{font-size:11.5px;font-weight:600;width:38px;text-align:right;flex-shrink:0}
+.seg-loss{font-size:11px;color:var(--text-m);width:68px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+
+/* ── Hypothesis rows ── */
+.hyp-row{background:var(--surface2);border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;border:1px solid var(--border)}
+.hyp-badge{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:12px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.hyp-badge.pass{background:var(--green-lt);color:var(--green);border:1px solid #A7F3D0}
+.hyp-badge.reject{background:var(--red-lt);color:var(--red);border:1px solid #FECACA}
+.hyp-text{font-size:12px;color:var(--text-b);line-height:1.65}
+.hyp-text strong{color:var(--blue);font-weight:600}
+
+/* ── Action cards ── */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.action-card{border-radius:var(--radius);padding:14px 16px;border-left:4px solid;border:1px solid var(--border);border-left-width:4px}
+.action-card.red{background:var(--red-lt);border-left-color:var(--red)}
+.action-card.amber{background:var(--amber-lt);border-left-color:var(--amber)}
+.action-card.green{background:var(--green-lt);border-left-color:var(--green)}
+.action-card.blue{background:var(--blue-lt);border-left-color:var(--blue)}
+.action-card .ac-title{font-size:12.5px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.action-card.red .ac-title{color:var(--red)}
+.action-card.amber .ac-title{color:var(--amber)}
+.action-card.green .ac-title{color:var(--green)}
+.action-card.blue .ac-title{color:var(--blue)}
+.action-card p{font-size:11.5px;color:var(--text-b);line-height:1.6}
+
+/* ── Heatmap ── */
+.hm-cell{border-radius:4px;text-align:center;padding:5px 2px;font-size:9px;font-weight:600;font-family:var(--mono)}
+
+/* ── Top customer table ── */
+.tc-table{width:100%;font-size:12px;border-collapse:collapse;margin-top:6px}
+.tc-table th{font-size:10.5px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:.5px;padding:6px 0;border-bottom:2px solid var(--border);text-align:left}
+.tc-table th:last-child{text-align:right}
+.tc-table td{padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-h)}
+.tc-table tr:last-child td{border-bottom:none}
+.tc-table td:last-child{text-align:right;font-weight:600;font-family:var(--mono)}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.pill-red{background:var(--red-lt);color:var(--red)}
+.pill-amber{background:var(--amber-lt);color:var(--amber)}
+.pill-gray{background:var(--surface2);color:var(--text-m)}
+
+/* ── Download button ── */
+.dl-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--blue);color:#fff;font-size:13px;font-weight:600;
+  padding:10px 20px;border-radius:var(--radius-sm);border:none;cursor:pointer;
+  box-shadow:0 2px 8px rgba(37,99,235,.4);
+  transition:background .15s,box-shadow .15s,transform .1s;
+  text-decoration:none;font-family:var(--font)
+}
+.dl-btn:hover{background:#1D4ED8;box-shadow:0 4px 14px rgba(37,99,235,.5);transform:translateY(-1px)}
+.dl-btn:active{transform:translateY(0)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="db">
+
+<!-- HEADER -->
+<div class="db-header">
+  <div>
+    <div class="db-title">📊 E-Commerce Return Rate Investigation</div>
+    <div class="db-sub">Task 5 &nbsp;·&nbsp; 10,999 orders &nbsp;·&nbsp; 7 analysis phases &nbsp;·&nbsp; Brazilian E-commerce dataset</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="db-badge"><span class="badge-dot"></span>Return rate: 70.4% vs 8% baseline</div>
+    <button class="dl-btn" onclick="downloadDashboard()">⬇ Download</button>
+  </div>
+</div>
+
+<!-- KPI ROW -->
+<div class="section-label">Phase 1 — Key Metrics</div>
+<div class="grid4">
+  <div class="kpi kpi-danger">
+    <div class="kpi-icon">📦</div>
+    <div class="kpi-label">Return Rate</div>
+    <div class="kpi-val">70.4%</div>
+    <div class="kpi-note">↑ 62.4 pp above 8% baseline</div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:70.4%"></div></div>
+  </div>
+  <div class="kpi kpi-warn">
+    <div class="kpi-icon">₹</div>
+    <div class="kpi-label">Revenue at Risk</div>
+    <div class="kpi-val">₹2.46L</div>
+    <div class="kpi-note">₹2,45,822 estimated loss</div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:82%"></div></div>
+  </div>
+  <div class="kpi kpi-info">
+    <div class="kpi-icon">🛒</div>
+    <div class="kpi-label">Total Orders</div>
+    <div class="kpi-val">10,999</div>
+    <div class="kpi-note">7,741 returned · 3,258 kept</div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%"></div></div>
+  </div>
+  <div class="kpi kpi-ok">
+    <div class="kpi-icon">🚚</div>
+    <div class="kpi-label">Avg Delivery Days</div>
+    <div class="kpi-val">8.68</div>
+    <div class="kpi-note">Avg rating: 2.99 / 5</div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:62%"></div></div>
+  </div>
+</div>
+
+<!-- PHASE 1-2 -->
+<div class="section-label">Phase 1–2 — Return Distribution &amp; Risk Overview</div>
+<div class="grid2">
+  <div class="panel">
+    <div class="panel-title">Return Rate Breakdown</div>
+    <div class="panel-sub">Donut view — phase 1 overview</div>
+    <div class="leg">
+      <span><span class="leg-dot" style="background:var(--red)"></span>Returned 70.4% (7,741)</span>
+      <span><span class="leg-dot" style="background:var(--green)"></span>Not Returned 29.6% (3,258)</span>
+    </div>
+    <div class="chart-wrap" style="height:210px"><canvas id="c1"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Orders by Risk Level</div>
+    <div class="panel-sub">High / Medium / Low return risk distribution</div>
+    <div class="leg">
+      <span><span class="leg-dot" style="background:var(--red)"></span>High 2,236</span>
+      <span><span class="leg-dot" style="background:var(--amber)"></span>Medium 5,505</span>
+      <span><span class="leg-dot" style="background:var(--green)"></span>Low 3,258</span>
+    </div>
+    <div class="chart-wrap" style="height:210px"><canvas id="c2"></canvas></div>
+  </div>
+</div>
+
+<!-- PHASE 3 -->
+<div class="section-label">Phase 3 — Return Pattern Investigation</div>
+<div class="grid2">
+  <div class="panel">
+    <div class="panel-title">Return Rate by Product Category</div>
+    <div class="panel-sub">Avg line at 70.4% — red bars exceed average</div>
+    <div class="leg">
+      <span><span class="leg-dot" style="background:var(--red)"></span>Above average</span>
+      <span><span class="leg-dot" style="background:var(--blue)"></span>Below average</span>
+      <span><span class="leg-line" style="background:var(--amber)"></span>Avg 70.4%</span>
+    </div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Discount Range vs Return Rate</div>
+    <div class="panel-sub">0–10% and 51%+ discount groups spike returns</div>
+    <div class="leg">
+      <span><span class="leg-dot" style="background:var(--red)"></span>High return risk</span>
+      <span><span class="leg-dot" style="background:var(--blue)"></span>Below average</span>
+    </div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c4"></canvas></div>
+  </div>
+</div>
+
+<div class="grid13">
+  <div class="panel">
+    <div class="panel-title">Customer Rating vs Return Rate</div>
+    <div class="panel-sub">Ratings 1–2 have 100% return rate — critical threshold</div>
+    <div class="chart-wrap" style="height:200px"><canvas id="c5"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Delivery Impact on Returns</div>
+    <div class="panel-sub">Delayed orders = 100% return rate</div>
+    <div class="chart-wrap" style="height:140px"><canvas id="c6"></canvas></div>
+    <div class="insight-box">
+      <p><strong>Key finding:</strong> Every single delayed order was returned. On-time delivery still shows 50.4% returns — suggesting delivery is the primary but not sole driver.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 4 -->
+<div class="section-label">Phase 4 — Outlier Analysis</div>
+<div class="grid3">
+  <div class="panel">
+    <div class="panel-title">IQR Outliers by Column</div>
+    <div class="panel-sub">Discount has 2,209 outliers (20%)</div>
+    <div class="chart-wrap" style="height:170px"><canvas id="c7"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Top Return Customers</div>
+    <div class="panel-sub">Customer 4854 leads with 10 returns</div>
+    <table class="tc-table">
+      <thead><tr><th>Customer ID</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td>4854</td><td><span class="pill pill-red">10</span></td></tr>
+        <tr><td>3773, 3708, 1018</td><td><span class="pill pill-amber">9 each</span></td></tr>
+        <tr><td>1935, 2449, 3532</td><td><span class="pill pill-amber">8 each</span></td></tr>
+        <tr><td>1703, 1661, 3964</td><td><span class="pill pill-gray">7 each</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Outlier Insight</div>
+    <div class="panel-sub">What the outlier analysis reveals</div>
+    <div style="margin-top:6px">
+      <div class="hyp-row">
+        <span class="hyp-badge reject">Discount</span>
+        <div class="hyp-text">2,209 orders (20%) have unusual discount values above ₹40+. These drive impulse purchases and higher returns.</div>
+      </div>
+      <div class="hyp-row">
+        <span class="hyp-badge pass">Clean</span>
+        <div class="hyp-text">Cost, delivery days, care calls, and weight have zero IQR outliers — data is well-structured.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 5 -->
+<div class="section-label">Phase 5 — Hypothesis Testing (3 Statistical Tests)</div>
+<div class="panel" style="margin-bottom:14px">
+  <div class="panel-title">Statistical Test Results — All 3 Hypotheses Rejected at p &lt; 0.05</div>
+  <div class="panel-sub">T-Test · Chi-Square · One-Way ANOVA</div>
+  <div style="margin-top:10px">
+    <div class="hyp-row">
+      <span class="hyp-badge reject">✅ Reject H₀</span>
+      <div class="hyp-text"><strong>T-Test (Delivery days):</strong> Returned orders avg <strong>10.23 days</strong> vs 5.00 days for non-returned. T = 54.41, p = 0.000000. Delivery delay has a massive, statistically significant impact on returns.</div>
+    </div>
+    <div class="hyp-row">
+      <span class="hyp-badge reject">✅ Reject H₀</span>
+      <div class="hyp-text"><strong>Chi-Square (Delivery status):</strong> Delayed = 4,436 returned / 0 kept. On-Time = 3,305 returned / 3,258 kept. Chi² = 3126.55, p = 0.000000. Delivery status is strongly associated with return behavior.</div>
+    </div>
+    <div class="hyp-row">
+      <span class="hyp-badge reject">✅ Reject H₀</span>
+      <div class="hyp-text"><strong>ANOVA (Product cost by risk):</strong> Product cost differs significantly across Low/Medium/High return risk groups. F = 28.99, p = 0.000000. Cost is a meaningful predictor of return risk level.</div>
+    </div>
+  </div>
+  <div class="chart-wrap" style="height:190px;margin-top:14px"><canvas id="c8"></canvas></div>
+</div>
+
+<!-- PHASE 6 -->
+<div class="section-label">Phase 6 — Customer Segmentation</div>
+<div class="grid2">
+  <div class="panel">
+    <div class="panel-title">Return Rate by Customer Segment</div>
+    <div class="panel-sub">Delayed-Delivery and High-Return segments at 100%</div>
+    <div style="margin-top:14px">
+      <div class="seg-row">
+        <div class="seg-name">Delayed-Delivery</div>
+        <div class="seg-bar-wrap"><div class="seg-bar" style="width:100%;background:var(--red)"></div></div>
+        <div class="seg-pct" style="color:var(--red)">100%</div>
+        <div class="seg-loss">₹73,332</div>
+      </div>
+      <div class="seg-row">
+        <div class="seg-name">High-Return</div>
+        <div class="seg-bar-wrap"><div class="seg-bar" style="width:100%;background:var(--red)"></div></div>
+        <div class="seg-pct" style="color:var(--red)">100%</div>
+        <div class="seg-loss">₹72,631</div>
+      </div>
+      <div class="seg-row">
+        <div class="seg-name">Discount-Driven</div>
+        <div class="seg-bar-wrap"><div class="seg-bar" style="width:67.3%;background:var(--amber)"></div></div>
+        <div class="seg-pct" style="color:var(--amber)">67.3%</div>
+        <div class="seg-loss">₹22,360</div>
+      </div>
+      <div class="seg-row">
+        <div class="seg-name">Loyal Customer</div>
+        <div class="seg-bar-wrap"><div class="seg-bar" style="width:45.7%;background:var(--green)"></div></div>
+        <div class="seg-pct" style="color:var(--green)">45.7%</div>
+        <div class="seg-loss">₹77,499</div>
+      </div>
+    </div>
+    <div class="insight-box">
+      <p><strong>Note:</strong> Loyal customers have the largest revenue loss (₹77,499) despite lower rate — because they are the biggest group (5,323 orders). Volume matters.</p>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Segment Revenue Loss (₹)</div>
+    <div class="panel-sub">Loyal customers highest total loss due to volume</div>
+    <div class="leg">
+      <span><span class="leg-dot" style="background:var(--red)"></span>100% return rate</span>
+      <span><span class="leg-dot" style="background:var(--amber)"></span>67% rate</span>
+      <span><span class="leg-dot" style="background:var(--green)"></span>46% rate</span>
+    </div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c9"></canvas></div>
+  </div>
+</div>
+
+<!-- PHASE 7 -->
+<div class="section-label">Phase 7 — Monthly Trend &amp; Business Insights</div>
+<div class="grid2">
+  <div class="panel">
+    <div class="panel-title">Monthly Return Rate Trend (Jan–Dec)</div>
+    <div class="panel-sub">Peaks in June (72.4%) and September (72.3%)</div>
+    <div class="chart-wrap" style="height:210px"><canvas id="c10"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Correlation Heatmap — Feature Relationships</div>
+    <div class="panel-sub">Key correlations between numeric features</div>
+    <div id="heatmap" style="margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- RECOMMENDATIONS -->
+<div class="section-label">Phase 7 — Business Recommendations</div>
+<div class="panel" style="margin-bottom:20px">
+  <div class="panel-title">4 Priority Action Areas for Operations Team</div>
+  <div class="panel-sub">Based on statistical findings across all 7 phases</div>
+  <div class="action-grid">
+    <div class="action-card red">
+      <div class="ac-title">🚚 Enforce 7-Day Delivery SLA</div>
+      <p>100% of delayed orders were returned. This is the single biggest lever. Every delivery beyond 7 days is a guaranteed return. Audit logistics partners immediately.</p>
+    </div>
+    <div class="action-card amber">
+      <div class="ac-title">🏷 Cap Discounts at 35%</div>
+      <p>Orders with 0–10% and 51%+ discounts have highest returns. Counter-intuitively, very low discounts also spike returns — likely impulse buys. Cap at 35% for Furniture, Electronics, Sports.</p>
+    </div>
+    <div class="action-card blue">
+      <div class="ac-title">📞 Alert When Care Calls ≥ 5</div>
+      <p>High care call frequency signals dissatisfaction before a return is filed. Proactive intervention when calls reach 5+ can convert potential returns into retained orders.</p>
+    </div>
+    <div class="action-card green">
+      <div class="ac-title">⭐ Outreach for Rating ≤ 2</div>
+      <p>Customers rating ≤ 2 return 100% of the time. Real-time rating monitoring + proactive outreach within 24 hours of a low rating can intercept returns before they happen.</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /db -->
+
+<script>
+/* ─── Chart defaults ─── */
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11.5;
+
+const gridColor  = '#E4E7EC';
+const tickColor  = '#7B8DAE';
+const RED        = '#DC2626';
+const AMBER      = '#D97706';
+const GREEN      = '#059669';
+const BLUE       = '#2563EB';
+const BLUE2      = '#3B82F6';
+const PURPLE     = '#7C3AED';
+
+function baseOpts(extra){
+  return Object.assign({
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor}},
+      y:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor}}
+    }
+  }, extra||{});
+}
+
+function mc(id, cfg){
+  const el = document.getElementById(id);
+  if(el) new Chart(el, cfg);
+}
+
+/* c1 – Donut */
+mc('c1',{type:'doughnut',data:{
+  labels:['Returned','Not Returned'],
+  datasets:[{data:[7741,3258],backgroundColor:[RED,GREEN],borderColor:'#fff',borderWidth:3,hoverOffset:5}]
+},options:{responsive:true,maintainAspectRatio:false,cutout:'66%',
+  plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:d=>`${d.label}: ${d.raw.toLocaleString()} (${(d.raw/10999*100).toFixed(1)}%)`}}}
+}});
+
+/* c2 – Risk level bars */
+mc('c2',{type:'bar',data:{
+  labels:['High Risk','Medium Risk','Low Risk'],
+  datasets:[{data:[2236,5505,3258],backgroundColor:[RED,AMBER,GREEN],borderColor:'transparent',borderRadius:5,borderSkipped:false}]
+},options:{...baseOpts(),plugins:{legend:{display:false},
+  tooltip:{callbacks:{label:d=>`${d.raw.toLocaleString()} orders`}}
+}}});
+
+/* c3 – Category */
+mc('c3',{type:'bar',data:{
+  labels:['Furniture','Sports','Electronics','Beauty','Grocery','Fashion'],
+  datasets:[{data:[71.6,71.3,71.1,69.5,69.5,69.3],
+    backgroundColor:[RED,RED,RED,BLUE2,BLUE2,BLUE2],borderColor:'transparent',borderRadius:5,borderSkipped:false}]
+},options:{...baseOpts(),
+  plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:d=>`${d.raw.toFixed(1)}% return rate`}},
+    annotation:{annotations:{avg:{type:'line',yMin:70.4,yMax:70.4,borderColor:AMBER,borderWidth:2,borderDash:[5,4]}}}
+  },
+  scales:{x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor,font:{size:10.5}}},
+          y:{min:67,max:73,grid:{color:gridColor},ticks:{color:tickColor,callback:v=>v+'%'}}}
+}});
+
+/* c4 – Discount */
+mc('c4',{type:'bar',data:{
+  labels:['0–10%','11–20%','21–30%','31–40%','41–50%','51%+'],
+  datasets:[{data:[74.7,42.5,47.2,44.5,68.6,71.2],
+    backgroundColor:[RED,BLUE2,BLUE2,BLUE2,RED,RED],borderColor:'transparent',borderRadius:5,borderSkipped:false}]
+},options:{...baseOpts(),
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>`${d.raw.toFixed(1)}% return rate`}}},
+  scales:{x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor,font:{size:10.5}}},
+          y:{min:30,max:82,grid:{color:gridColor},ticks:{color:tickColor,callback:v=>v+'%'}}}
+}});
+
+/* c5 – Rating line */
+mc('c5',{type:'line',data:{
+  labels:['Rating 1','Rating 2','Rating 3','Rating 4','Rating 5'],
+  datasets:[{data:[100,100,66.0,43.0,42.4],
+    borderColor:RED,backgroundColor:'rgba(220,38,38,.10)',fill:true,tension:0.35,
+    pointBackgroundColor:RED,pointBorderColor:'#fff',pointBorderWidth:2,
+    pointRadius:6,pointHoverRadius:8,borderWidth:2.5}]
+},options:{...baseOpts(),
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>`${d.raw.toFixed(1)}% return rate`}}},
+  scales:{x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor,font:{size:10.5}}},
+          y:{min:30,max:110,grid:{color:gridColor},ticks:{color:tickColor,callback:v=>v+'%'}}}
+}});
+
+/* c6 – Delivery impact */
+mc('c6',{type:'bar',data:{
+  labels:['Delayed','On-Time'],
+  datasets:[{data:[100.0,50.4],backgroundColor:[RED,GREEN],borderColor:'transparent',borderRadius:5,borderSkipped:false}]
+},options:{...baseOpts(),
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>`${d.raw.toFixed(1)}% return rate`}}},
+  scales:{x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor}},
+          y:{min:0,max:120,grid:{color:gridColor},ticks:{color:tickColor,callback:v=>v+'%'}}}
+}});
+
+/* c7 – Outliers */
+mc('c7',{type:'bar',data:{
+  labels:['Product Cost','Discount','Delivery Days','Care Calls','Weight'],
+  datasets:[{data:[0,2209,0,0,0],
+    backgroundColor:[GREEN,RED,GREEN,GREEN,GREEN],borderColor:'transparent',borderRadius:5,borderSkipped:false}]
+},options:{...baseOpts(),
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>`${d.raw.toLocaleString()} outliers`}}},
+  scales:{x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor,font:{size:9.5},maxRotation:25}},
+          y:{grid:{color:gridColor},ticks:{color:tickColor}}}
+}});
+
+/* c8 – Delivery days comparison */
+mc('c8',{type:'bar',data:{
+  labels:['Returned Orders','Not Returned Orders'],
+  datasets:[{data:[10.23,5.00],
+    backgroundColor:[RED,GREEN],borderColor:'transparent',borderRadius:5,borderSkipped:false,
+    label:'Mean delivery days'}]
+},options:{...baseOpts(),
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>`${d.raw.toFixed(2)} days avg`}}},
+  scales:{x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor}},
+          y:{min:0,max:14,grid:{color:gridColor},ticks:{color:tickColor,callback:v=>v+' days'}}}
+}});
+
+/* c9 – Segment revenue (horizontal) */
+mc('c9',{type:'bar',data:{
+  labels:['Loyal Customer','Delayed-Delivery','High-Return','Discount-Driven'],
+  datasets:[{data:[77499,73332,72631,22360],
+    backgroundColor:[GREEN,RED,RED,AMBER],borderColor:'transparent',borderRadius:5,borderSkipped:false,
+    label:'Revenue loss'}]
+},options:{...baseOpts(),indexAxis:'y',
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>`₹${d.raw.toLocaleString()}`}}},
+  scales:{
+    x:{grid:{color:gridColor},ticks:{color:tickColor,callback:v=>'₹'+Math.round(v/1000)+'K'}},
+    y:{grid:{color:'transparent'},ticks:{color:tickColor}}
+  }
+}});
+
+/* c10 – Monthly trend */
+mc('c10',{type:'line',data:{
+  labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  datasets:[
+    {data:[71.0,71.4,70.5,67.4,69.7,72.4,68.9,70.3,72.3,70.5,69.8,70.5],
+      borderColor:BLUE,backgroundColor:'rgba(37,99,235,.08)',fill:true,tension:0.4,
+      pointBackgroundColor:BLUE,pointBorderColor:'#fff',pointBorderWidth:2,
+      pointRadius:5,pointHoverRadius:7,borderWidth:2.5,label:'Return rate %'},
+    {data:Array(12).fill(70.4),
+      borderColor:AMBER,borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,label:'Annual avg'}
+  ]
+},options:{...baseOpts(),
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>d.datasetIndex===0?`${d.raw.toFixed(1)}% return rate`:'Annual avg 70.4%'}}},
+  scales:{
+    x:{grid:{color:gridColor,lineWidth:.8},ticks:{color:tickColor}},
+    y:{min:64,max:75,grid:{color:gridColor},ticks:{color:tickColor,callback:v=>v+'%'}}
+  }
+}});
+
+/* ─── Heatmap ─── */
+(function(){
+  const hm = document.getElementById('heatmap');
+  const labels = ['Cost','Discount','Rating','Del.Days','CareCall','RiskVal','PriorPur'];
+  const vals = [
+    [1.00,null,null,null,null,null,null],
+    [-0.05,1.00,null,null,null,null,null],
+    [-0.01,-0.01,1.00,null,null,null,null],
+    [0.03,-0.03,-0.02,1.00,null,null,null],
+    [0.01,0.01,-0.01,0.01,1.00,null,null],
+    [0.04,-0.04,-0.16,0.45,-0.02,1.00,null],
+    [0.01,0.01,-0.02,0.01,0.00,0.01,1.00]
+  ];
+  const n=7;
+  let html='<div style="display:grid;grid-template-columns:52px '+Array(n).fill('1fr').join(' ')+';gap:2px">';
+  html+='<div></div>';
+  labels.forEach(l=>{html+=`<div style="color:#7B8DAE;text-align:center;padding:3px 0;font-size:9px;font-weight:600">${l}</div>`});
+  vals.forEach((row,i)=>{
+    html+=`<div style="color:#7B8DAE;font-size:9px;font-weight:500;display:flex;align-items:center;padding-right:4px">${labels[i]}</div>`;
+    row.forEach((v,j)=>{
+      if(v===null){html+='<div style="background:#F7F8FA;border-radius:4px;border:1px solid #E4E7EC;height:32px"></div>';return;}
+      let bg,tc;
+      if(v>0.3){bg='#D1FAE5';tc='#065F46';}
+      else if(v>0.1){bg='#ECFDF5';tc='#059669';}
+      else if(v<-0.1){bg='#FEF2F2';tc='#DC2626';}
+      else{bg='#F0F2F5';tc='#7B8DAE';}
+      html+=`<div class="hm-cell" style="background:${bg};color:${tc};border:1px solid ${bg==='#F0F2F5'?'#E4E7EC':bg};height:32px;line-height:32px">${v.toFixed(2)}</div>`;
+    });
+  });
+  html+='</div>';
+  hm.innerHTML=html;
+})();
+
+/* ─── Download ─── */
+function downloadDashboard(){
+  const blob=new Blob([document.documentElement.outerHTML],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='ecommerce_return_rate_dashboard.html';
+  a.click();
+}
+</script>
+</body>
+</html>
